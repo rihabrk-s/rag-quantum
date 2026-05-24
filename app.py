@@ -4,7 +4,6 @@ from groq import Groq
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
-# ─── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Quantum AI — RAG Assistant",
     page_icon="⚛️",
@@ -12,193 +11,197 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── Custom CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Sora:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* ── Global reset ── */
+/* ── Palette ──
+   #C9788A  Puce
+   #E29C9C  Salmon pink
+   #E6BEAE  Pale Dogwood
+   #EEDAC5  Almond
+   #F5F5DC  Beige
+*/
+
 html, body, [class*="css"] {
-    font-family: 'Sora', sans-serif;
-    background-color: #050a14 !important;
-    color: #e2e8f4 !important;
+    font-family: 'DM Sans', sans-serif;
+    background-color: #F5F5DC !important;
+    color: #3a2a2a !important;
 }
 
-/* ── Animated starfield background ── */
 .stApp {
     background:
-        radial-gradient(ellipse at 20% 50%, rgba(0,200,255,0.04) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 20%, rgba(120,80,255,0.06) 0%, transparent 50%),
-        #050a14 !important;
+        radial-gradient(ellipse at 10% 0%, rgba(201,120,138,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(230,190,174,0.18) 0%, transparent 55%),
+        #F5F5DC !important;
 }
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0a1628 0%, #060e1e 100%) !important;
-    border-right: 1px solid rgba(0,200,255,0.12) !important;
+    background: linear-gradient(180deg, #EED8C8 0%, #E6BEAE 100%) !important;
+    border-right: 1px solid rgba(201,120,138,0.25) !important;
 }
-[data-testid="stSidebar"] * { color: #c8d8f0 !important; }
+[data-testid="stSidebar"] * { color: #5a3040 !important; }
 
-/* ── Main header ── */
+/* ── Header ── */
 .quantum-header {
     text-align: center;
-    padding: 2rem 0 1rem;
-    position: relative;
+    padding: 2.5rem 0 1.5rem;
 }
 .quantum-header h1 {
-    font-family: 'Space Mono', monospace;
-    font-size: 2.4rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #00c8ff 0%, #7b5cfa 50%, #00ffb3 100%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3rem;
+    font-weight: 600;
+    font-style: italic;
+    background: linear-gradient(135deg, #C9788A 0%, #a05060 60%, #C9788A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin: 0;
+    letter-spacing: 0.01em;
     line-height: 1.1;
 }
 .quantum-header .subtitle {
-    font-size: 0.85rem;
-    color: #5a7a9e;
-    letter-spacing: 0.18em;
+    font-size: 0.78rem;
+    color: #b08090;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    margin-top: 0.4rem;
-    font-family: 'Space Mono', monospace;
+    margin-top: 0.5rem;
+    font-weight: 500;
 }
 .atom-icon {
-    font-size: 3rem;
+    font-size: 2.8rem;
     display: block;
-    margin-bottom: 0.5rem;
-    animation: spin 12s linear infinite;
-    filter: drop-shadow(0 0 16px rgba(0,200,255,0.5));
+    margin-bottom: 0.4rem;
+    filter: drop-shadow(0 2px 8px rgba(201,120,138,0.35));
 }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* ── Chat messages ── */
+/* ── Chat container ── */
 [data-testid="stChatMessage"] {
     background: transparent !important;
     border: none !important;
-    padding: 0.4rem 0 !important;
 }
 
-/* User bubble */
-[data-testid="stChatMessage"][data-testid*="user"],
-.stChatMessage:has([data-testid="chatAvatarIcon-user"]) {
-    background: transparent !important;
-}
-
-/* Message bubbles via markdown container */
-.user-msg, .bot-msg {
-    padding: 1rem 1.3rem;
-    border-radius: 16px;
-    margin: 0.3rem 0;
-    line-height: 1.65;
-    font-size: 0.95rem;
-}
-.user-msg {
-    background: linear-gradient(135deg, rgba(0,200,255,0.1), rgba(123,92,250,0.1));
-    border: 1px solid rgba(0,200,255,0.2);
-    border-radius: 16px 16px 4px 16px;
-}
-.bot-msg {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px 16px 16px 4px;
-}
-
-/* ── Chat input ── */
+/* ── Input ── */
 [data-testid="stChatInputContainer"] {
-    background: rgba(10,22,40,0.9) !important;
-    border-top: 1px solid rgba(0,200,255,0.1) !important;
-    padding: 1rem !important;
+    background: rgba(238,218,197,0.7) !important;
+    border-top: 1px solid rgba(201,120,138,0.2) !important;
+    backdrop-filter: blur(8px);
 }
 [data-testid="stChatInputTextArea"] {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(0,200,255,0.2) !important;
-    border-radius: 12px !important;
-    color: #e2e8f4 !important;
-    font-family: 'Sora', sans-serif !important;
+    background: rgba(255,255,255,0.7) !important;
+    border: 1.5px solid rgba(201,120,138,0.3) !important;
+    border-radius: 14px !important;
+    color: #3a2a2a !important;
+    font-family: 'DM Sans', sans-serif !important;
     font-size: 0.95rem !important;
 }
 [data-testid="stChatInputTextArea"]:focus {
-    border-color: rgba(0,200,255,0.5) !important;
-    box-shadow: 0 0 0 2px rgba(0,200,255,0.1) !important;
+    border-color: #C9788A !important;
+    box-shadow: 0 0 0 3px rgba(201,120,138,0.12) !important;
+}
+
+/* ── Message bubbles ── */
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) > div:last-child {
+    background: linear-gradient(135deg, rgba(201,120,138,0.18), rgba(226,156,156,0.15)) !important;
+    border: 1px solid rgba(201,120,138,0.25) !important;
+    border-radius: 18px 18px 4px 18px !important;
+    padding: 1rem 1.3rem !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) > div:last-child {
+    background: rgba(255,255,255,0.65) !important;
+    border: 1px solid rgba(230,190,174,0.5) !important;
+    border-radius: 18px 18px 18px 4px !important;
+    padding: 1rem 1.3rem !important;
+    backdrop-filter: blur(6px);
 }
 
 /* ── Source chips ── */
 .source-chip {
     display: inline-block;
-    background: rgba(0,200,255,0.08);
-    border: 1px solid rgba(0,200,255,0.2);
+    background: rgba(201,120,138,0.15);
+    border: 1px solid rgba(201,120,138,0.35);
     border-radius: 20px;
-    padding: 0.2rem 0.7rem;
+    padding: 0.2rem 0.75rem;
     font-size: 0.72rem;
-    font-family: 'Space Mono', monospace;
-    color: #00c8ff;
+    font-weight: 600;
+    color: #a05060;
     margin: 0.15rem;
+    letter-spacing: 0.05em;
 }
 
-/* ── Metrics cards ── */
+/* ── Metric cards ── */
 .metric-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px;
-    padding: 1rem;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(201,120,138,0.2);
+    border-radius: 14px;
+    padding: 0.9rem;
     text-align: center;
     margin: 0.3rem 0;
+    backdrop-filter: blur(4px);
 }
 .metric-card .val {
-    font-family: 'Space Mono', monospace;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #00c8ff;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #C9788A;
+    line-height: 1;
 }
 .metric-card .lbl {
-    font-size: 0.72rem;
-    color: #4a6880;
+    font-size: 0.68rem;
+    color: #b09098;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 0.2rem;
+    letter-spacing: 0.12em;
+    margin-top: 0.25rem;
 }
 
 /* ── Divider ── */
-hr { border-color: rgba(255,255,255,0.06) !important; }
-
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.2); border-radius: 3px; }
+hr { border-color: rgba(201,120,138,0.18) !important; }
 
 /* ── Buttons ── */
 .stButton button {
-    background: linear-gradient(135deg, rgba(0,200,255,0.15), rgba(123,92,250,0.15)) !important;
-    border: 1px solid rgba(0,200,255,0.3) !important;
-    color: #e2e8f4 !important;
-    border-radius: 8px !important;
-    font-family: 'Sora', sans-serif !important;
-    font-size: 0.85rem !important;
+    background: rgba(255,255,255,0.6) !important;
+    border: 1.5px solid rgba(201,120,138,0.3) !important;
+    color: #a05060 !important;
+    border-radius: 10px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 0.83rem !important;
+    font-weight: 500 !important;
     transition: all 0.2s !important;
 }
 .stButton button:hover {
-    border-color: rgba(0,200,255,0.6) !important;
-    box-shadow: 0 0 12px rgba(0,200,255,0.2) !important;
+    background: rgba(201,120,138,0.12) !important;
+    border-color: #C9788A !important;
+    box-shadow: 0 2px 12px rgba(201,120,138,0.2) !important;
 }
 
 /* ── Expander ── */
 [data-testid="stExpander"] {
-    background: rgba(255,255,255,0.02) !important;
-    border: 1px solid rgba(255,255,255,0.06) !important;
-    border-radius: 10px !important;
+    background: rgba(255,255,255,0.45) !important;
+    border: 1px solid rgba(230,190,174,0.5) !important;
+    border-radius: 12px !important;
 }
 
-/* Hide Streamlit branding */
+/* ── Slider ── */
+[data-testid="stSlider"] [data-baseweb="slider"] [role="slider"] {
+    background: #C9788A !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(201,120,138,0.3); border-radius: 3px; }
+
+/* ── Toggle ── */
+[data-testid="stToggle"] input:checked + div { background: #C9788A !important; }
+
+/* Hide branding */
 #MainMenu, footer, header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ─── Credentials (from Streamlit secrets or env) ──────────────────────────────
-def get_secret(key: str, default: str = "") -> str:
+def get_secret(key, default=""):
     try:
         return st.secrets[key]
     except Exception:
@@ -210,7 +213,6 @@ QDRANT_API_KEY  = get_secret("QDRANT_API_KEY")
 COLLECTION_NAME = get_secret("COLLECTION_NAME", "gots_chunks")
 
 
-# ─── Init clients (cached) ────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_embedder():
     return SentenceTransformer("BAAI/bge-m3")
@@ -224,14 +226,17 @@ def get_groq():
     return Groq(api_key=GROQ_API_KEY)
 
 
-# ─── RAG core ─────────────────────────────────────────────────────────────────
-def rag_query(question: str, top_k: int = 5, history: list = None) -> tuple[str, list]:
+def rag_query(question, top_k=5, history=None):
     embedder = load_embedder()
     qdrant   = get_qdrant()
     groq     = get_groq()
 
-    q_emb = embedder.encode(question).tolist()
-    results = qdrant.query_points(collection_name=COLLECTION_NAME, query=q_emb, limit=top_k).points
+    q_emb   = embedder.encode(question).tolist()
+    results = qdrant.query_points(
+        collection_name=COLLECTION_NAME,
+        query=q_emb,
+        limit=top_k
+    ).points
 
     if not results:
         return "Je n'ai pas trouvé d'information pertinente dans la base de connaissances.", []
@@ -253,18 +258,16 @@ You have access to a scientific white paper (arXiv:2505.23860v3) on this topic.
 
 STRICT RULES:
 - Answer ONLY from the provided context
-- If the answer is not in the context, reply exactly: "Je n'ai pas trouvé cette information dans la base de connaissances."
+- If the answer is not in the context, reply: "Je n'ai pas trouvé cette information dans la base de connaissances."
 - Cite chunk numbers [Chunk X] when referencing a source
 - Distinguish timelines: short-term (3-5 yrs) / mid-term (5-10 yrs) / long-term (>10 yrs) when relevant
 - Structure: Summary → Details → Source(s)
-- Reply in the language of the question (French, English, or Arabic)
-- Be precise, scientific, and clear""",
+- Reply in the language of the question (French, English, or Arabic)""",
         }
     ]
 
-    # Inject conversation history
     if history:
-        for h in history[-6:]:  # last 3 exchanges
+        for h in history[-6:]:
             messages.append({"role": h["role"], "content": h["content"]})
 
     messages.append({
@@ -278,26 +281,25 @@ STRICT RULES:
         temperature=0.1,
         max_tokens=1024,
     )
-
     return response.choices[0].message.content, sources
 
 
-# ─── Session state ─────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "total_queries" not in st.session_state:
     st.session_state.total_queries = 0
 
 
-# ─── Sidebar ──────────────────────────────────────────────────────────────────
+# ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style='text-align:center; padding: 1rem 0;'>
-        <div style='font-size:2rem'>⚛️</div>
-        <div style='font-family:"Space Mono",monospace; font-size:1rem; color:#00c8ff; font-weight:700; letter-spacing:0.05em;'>
-            RAG · QUANTUM AI
+    <div style='text-align:center; padding:1.2rem 0 0.5rem;'>
+        <div style='font-size:2.2rem'>⚛️</div>
+        <div style='font-family:"Cormorant Garamond",serif; font-size:1.15rem;
+                    color:#C9788A; font-weight:600; font-style:italic; letter-spacing:0.04em;'>
+            RAG · Quantum AI
         </div>
-        <div style='font-size:0.7rem; color:#3a5870; margin-top:0.3rem; font-family:"Space Mono",monospace;'>
+        <div style='font-size:0.68rem; color:#c0a0a8; margin-top:0.25rem; letter-spacing:0.1em;'>
             arXiv:2505.23860v3
         </div>
     </div>
@@ -305,59 +307,47 @@ with st.sidebar:
 
     st.divider()
 
-    # Metrics
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(f"""
-        <div class='metric-card'>
+        st.markdown(f"""<div class='metric-card'>
             <div class='val'>{st.session_state.total_queries}</div>
-            <div class='lbl'>Queries</div>
-        </div>""", unsafe_allow_html=True)
+            <div class='lbl'>Queries</div></div>""", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"""
-        <div class='metric-card'>
+        st.markdown(f"""<div class='metric-card'>
             <div class='val'>{len(st.session_state.messages)}</div>
-            <div class='lbl'>Messages</div>
-        </div>""", unsafe_allow_html=True)
+            <div class='lbl'>Messages</div></div>""", unsafe_allow_html=True)
 
     st.divider()
-
-    # Settings
     st.markdown("#### ⚙️ Settings")
-    top_k = st.slider("Chunks retrieved (top-k)", 1, 10, 5,
-                      help="Number of relevant document chunks to retrieve per query.")
+    top_k = st.slider("Chunks retrieved (top-k)", 1, 10, 5)
     show_sources = st.toggle("Show source chunks", value=True)
 
     st.divider()
-
-    # Suggested questions
     st.markdown("#### 💡 Example Questions")
     example_qs = [
         "What is quantum machine learning?",
         "Quels sont les avantages du QRL?",
         "How does AI help in error correction?",
         "ما هي تطبيقات الذكاء الاصطناعي الكمومي؟",
-        "What are the short-term goals of Quantum AI?",
+        "What are short-term goals of Quantum AI?",
     ]
     for eq in example_qs:
         if st.button(eq, use_container_width=True):
             st.session_state["pending_question"] = eq
 
     st.divider()
-
-    # Clear chat
     if st.button("🗑️ Clear conversation", use_container_width=True):
         st.session_state.messages = []
         st.session_state.total_queries = 0
         st.rerun()
 
     st.markdown("""
-    <div style='text-align:center; margin-top:1rem; font-size:0.68rem; color:#2a4060; font-family:"Space Mono",monospace;'>
-        Powered by BAAI/bge-m3 · Qdrant · Llama 3.3 70B
+    <div style='text-align:center;margin-top:1rem;font-size:0.68rem;color:#c0a8b0;'>
+        BAAI/bge-m3 · Qdrant · Llama 3.3 70B
     </div>""", unsafe_allow_html=True)
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# ── Main ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class='quantum-header'>
     <span class='atom-icon'>⚛️</span>
@@ -366,95 +356,85 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Check credentials
 if not all([GROQ_API_KEY, QDRANT_URL, QDRANT_API_KEY]):
-    st.error("⚠️  Missing credentials. Add GROQ_API_KEY, QDRANT_URL, QDRANT_API_KEY to Streamlit secrets or environment variables.")
+    st.error("⚠️ Missing credentials. Add GROQ_API_KEY, QDRANT_URL, QDRANT_API_KEY to Streamlit secrets.")
     st.stop()
 
-# Load models with spinner
-with st.spinner("🔄 Initializing embedder (first load: ~60s)…"):
+with st.spinner("Initializing… (first load: ~60s)"):
     try:
-        embedder = load_embedder()
-        qdrant   = get_qdrant()
+        load_embedder()
+        get_qdrant()
     except Exception as e:
         st.error(f"Connection error: {e}")
         st.stop()
 
-# Welcome message
 if not st.session_state.messages:
     st.markdown("""
     <div style='
-        background: linear-gradient(135deg, rgba(0,200,255,0.06), rgba(123,92,250,0.06));
-        border: 1px solid rgba(0,200,255,0.15);
-        border-radius: 16px;
-        padding: 1.5rem 2rem;
-        margin: 1rem 0 2rem;
-        font-size: 0.92rem;
-        line-height: 1.8;
-        color: #8aa8c8;
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(201,120,138,0.2);
+        border-radius: 18px;
+        padding: 1.6rem 2rem;
+        margin: 0.5rem 0 2rem;
+        font-size: 0.93rem;
+        line-height: 1.85;
+        color: #7a5060;
+        backdrop-filter: blur(6px);
     '>
-        👋 Welcome! I'm your <strong style='color:#00c8ff'>Quantum AI RAG Assistant</strong>.<br>
-        I answer questions based on the scientific white paper <strong>arXiv:2505.23860v3</strong> 
+        👋 Welcome! I'm your <strong style="color:#C9788A">Quantum AI RAG Assistant</strong>.<br>
+        I answer questions based on the scientific white paper <strong>arXiv:2505.23860v3</strong>
         on the intersection of AI and Quantum Computing.<br><br>
         Ask in <strong>English 🇬🇧</strong>, <strong>French 🇫🇷</strong>, or <strong>Arabic 🇸🇦</strong>.
     </div>
     """, unsafe_allow_html=True)
 
-# Render chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar="🧑‍💻" if msg["role"] == "user" else "⚛️"):
         st.markdown(msg["content"])
         if msg["role"] == "assistant" and show_sources and "sources" in msg:
             with st.expander(f"📚 Source chunks ({len(msg['sources'])})", expanded=False):
                 for s in msg["sources"]:
-                    score_color = "#00c8ff" if s["score"] > 0.7 else "#7b5cfa" if s["score"] > 0.5 else "#4a6880"
+                    score_color = "#C9788A" if s["score"] > 0.7 else "#E29C9C" if s["score"] > 0.5 else "#b0a0a8"
                     st.markdown(f"""
-                    <div style='border-left: 3px solid {score_color}; padding: 0.6rem 1rem; margin: 0.4rem 0;
-                                background: rgba(255,255,255,0.02); border-radius: 0 8px 8px 0;'>
+                    <div style='border-left:3px solid {score_color}; padding:0.6rem 1rem; margin:0.4rem 0;
+                                background:rgba(255,255,255,0.5); border-radius:0 10px 10px 0;'>
                         <span class='source-chip'>Chunk {s["chunk_id"]}</span>
-                        <span style='font-family:"Space Mono",monospace; font-size:0.7rem; color:{score_color}; margin-left:0.5rem;'>
+                        <span style='font-size:0.72rem; color:{score_color}; margin-left:0.4rem; font-weight:600;'>
                             score: {s["score"]}
                         </span>
-                        <div style='font-size:0.82rem; color:#6a8aaa; margin-top:0.4rem; font-style:italic;'>
+                        <div style='font-size:0.82rem; color:#9a7880; margin-top:0.35rem; font-style:italic;'>
                             {s["text"]}…
                         </div>
                     </div>""", unsafe_allow_html=True)
 
-# Handle pending question from sidebar buttons
 if "pending_question" in st.session_state:
     question = st.session_state.pop("pending_question")
 else:
     question = st.chat_input("Ask anything about Quantum AI… (EN / FR / AR)")
 
 if question:
-    # Show user message
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user", avatar="🧑‍💻"):
         st.markdown(question)
 
-    # Build history for context
-    history = [
-        {"role": m["role"], "content": m["content"]}
-        for m in st.session_state.messages[:-1]
-    ]
+    history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
 
-    # Get answer
     with st.chat_message("assistant", avatar="⚛️"):
-        with st.spinner("🔍 Searching quantum knowledge base…"):
+        with st.spinner("Searching knowledge base…"):
             answer, sources = rag_query(question, top_k=top_k, history=history)
         st.markdown(answer)
         if show_sources and sources:
             with st.expander(f"📚 Source chunks ({len(sources)})", expanded=False):
                 for s in sources:
-                    score_color = "#00c8ff" if s["score"] > 0.7 else "#7b5cfa" if s["score"] > 0.5 else "#4a6880"
+                    score_color = "#C9788A" if s["score"] > 0.7 else "#E29C9C" if s["score"] > 0.5 else "#b0a0a8"
                     st.markdown(f"""
-                    <div style='border-left: 3px solid {score_color}; padding: 0.6rem 1rem; margin: 0.4rem 0;
-                                background: rgba(255,255,255,0.02); border-radius: 0 8px 8px 0;'>
+                    <div style='border-left:3px solid {score_color}; padding:0.6rem 1rem; margin:0.4rem 0;
+                                background:rgba(255,255,255,0.5); border-radius:0 10px 10px 0;'>
                         <span class='source-chip'>Chunk {s["chunk_id"]}</span>
-                        <span style='font-family:"Space Mono",monospace; font-size:0.7rem; color:{score_color}; margin-left:0.5rem;'>
+                        <span style='font-size:0.72rem; color:{score_color}; margin-left:0.4rem; font-weight:600;'>
                             score: {s["score"]}
                         </span>
-                        <div style='font-size:0.82rem; color:#6a8aaa; margin-top:0.4rem; font-style:italic;'>
+                        <div style='font-size:0.82rem; color:#9a7880; margin-top:0.35rem; font-style:italic;'>
                             {s["text"]}…
                         </div>
                     </div>""", unsafe_allow_html=True)
