@@ -231,7 +231,7 @@ def rag_query(question: str, top_k: int = 5, history: list = None) -> tuple[str,
     groq     = get_groq()
 
     q_emb = embedder.encode(question).tolist()
-    results = client.query_points(collection_name=COLLECTION_NAME, query=q_emb, limit=top_k).points
+    results = qdrant.query_points(collection_name=COLLECTION_NAME, query=q_emb, limit=top_k).points
 
     if not results:
         return "Je n'ai pas trouvé d'information pertinente dans la base de connaissances.", []
