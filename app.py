@@ -352,7 +352,7 @@ st.markdown("""
 <div class='quantum-header'>
     <span class='atom-icon'>⚛️</span>
     <h1>Quantum AI Assistant</h1>
-    <div class='subtitle'>RAG · White Paper Intelligence · TP2</div>
+    <div class='subtitle'>RAG · White Paper Intelligence</div>
 </div>
 """, unsafe_allow_html=True)
 
